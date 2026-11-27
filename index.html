@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Money Tracker.</title>
+  <title>Money Tracker</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -54,15 +54,16 @@
     .text-red { color: var(--danger); font-weight: 600; }
 
     /* List Items */
-    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; gap: 8px; }
     .list-item:last-child { border-bottom: none; }
-    .item-left { display: flex; align-items: center; gap: 12px; }
-    .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; }
+    .item-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
     .avatar.pay { background: var(--danger-light); color: var(--danger); }
     .avatar.receive { background: var(--success-light); color: var(--success); }
-    .item-name { font-weight: 600; font-size: 15px; }
-    .item-date { font-size: 12px; color: var(--muted); }
-    .item-amount { font-weight: 700; font-size: 15px; text-align: right; }
+    .item-name { font-weight: 600; font-size: 14px; }
+    .item-date { font-size: 11px; color: var(--muted); }
+    .item-log { font-size: 10px; color: var(--primary); margin-top: 2px; }
+    .item-amount { font-weight: 700; font-size: 14px; text-align: right; }
 
     /* Forms */
     .form-group { margin-bottom: 14px; }
@@ -79,7 +80,9 @@
     .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
     .badge.pending { background: #fef3c7; color: #d97706; }
     .badge.completed { background: #e2e8f0; color: #475569; }
-    .done-btn { background: var(--primary-light); color: var(--primary); border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+    .action-btns { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; flex-wrap: wrap; }
+    .partial-btn { background: #fef3c7; color: #b45309; border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+    .done-btn { background: var(--primary-light); color: var(--primary); border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
 
     /* Bottom Navigation */
     .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 480px; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #e2e8f0; z-index: 100; }
@@ -294,6 +297,7 @@
             <div>
               <div class="item-name">${r.name}</div>
               <div class="item-date">Due: ${r.dueDate}</div>
+              ${r.partialLog ? `<div class="item-log">Paid/Rec: ${r.partialLog}</div>` : ''}
             </div>
           </div>
           <div class="item-amount ${isPay ? 'text-red' : 'text-green'}">
@@ -403,15 +407,45 @@
               <div>
                 <div class="item-name">${r.name} <span class="badge ${isPending ? 'pending' : 'completed'}">${r.status}</span></div>
                 <div class="item-date">${isPay ? 'To Pay' : 'To Receive'} • ${r.dueDate}</div>
+                ${r.partialLog ? `<div class="item-log">History: ${r.partialLog}</div>` : ''}
               </div>
             </div>
             <div style="text-align:right;">
               <div class="item-amount ${isPay ? 'text-red' : 'text-green'}">₹${r.amount.toLocaleString()}</div>
-              ${isPending ? `<button class="done-btn" onclick="completeRecord('${r.id}')">Mark Paid</button>` : ''}
+              ${isPending ? `
+                <div class="action-btns">
+                  <button class="partial-btn" onclick="partialRecord('${r.id}', ${r.amount})">Partial</button>
+                  <button class="done-btn" onclick="completeRecord('${r.id}')">Mark Paid</button>
+                </div>
+              ` : ''}
             </div>
           </div>
         `;
       }).join('');
+    }
+
+    function partialRecord(id, currentRemaining) {
+      const input = prompt(`ബാക്കി തുക ₹${currentRemaining.toLocaleString()} ആണ്. ഇപ്പോൾ കൊടുത്ത/കിട്ടിയ തുക എത്രയാണ്?`);
+      if (input === null) return;
+      const paidAmount = Number(input);
+      if (isNaN(paidAmount) || paidAmount <= 0) {
+        alert("ശരിയായ ഒരു തുക നൽകുക.");
+        return;
+      }
+      if (paidAmount > currentRemaining) {
+        alert("ബാക്കി തുകയിൽ കൂടുതൽ തുക നൽകാൻ കഴിയില്ല.");
+        return;
+      }
+
+      callApi({
+        action: "partial",
+        user: appState.currentUser,
+        id: id,
+        paidAmount: paidAmount
+      }, function(res) {
+        appState = res;
+        renderApp();
+      });
     }
 
     function completeRecord(id) {
