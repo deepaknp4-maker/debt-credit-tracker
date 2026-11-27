@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Money Tracker.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f766e;
+      --primary-light: #ccfbf1;
+      --danger: #e11d48;
+      --danger-light: #ffe4e6;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+    body { background-color: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 80px; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+
+    /* Login Screen */
+    #login-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; padding: 20px; background: linear-gradient(135deg, #0f766e 0%, #115e59 100%); color: white; }
+    .login-box { background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); padding: 30px 25px; border-radius: 20px; width: 100%; max-width: 340px; text-align: center; }
+    .login-box h2 { margin-bottom: 8px; font-weight: 600; }
+    .login-box p { font-size: 13px; opacity: 0.85; margin-bottom: 20px; }
+    #pin-input { width: 100%; padding: 15px; font-size: 28px; text-align: center; letter-spacing: 12px; border: none; border-radius: 12px; outline: none; font-weight: 700; color: var(--primary); margin-bottom: 15px; }
+    .btn-login { width: 100%; padding: 14px; background: #fbbf24; color: #1e293b; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    #login-error { color: #fecdd3; font-size: 13px; margin-top: 10px; display: none; }
+
+    /* App Header */
+    .header { background: var(--primary); color: white; padding: 24px 20px 30px; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
+    .header-top { display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 22px; font-weight: 600; }
+    .logout-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+
+    /* Sections */
+    .section { padding: 16px; display: none; }
+    .section.active { display: block; }
+
+    /* Cards & Graphs */
+    .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+
+    .graph-box { margin-bottom: 14px; }
+    .graph-header { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .bar-bg { width: 100%; height: 14px; background: #e2e8f0; border-radius: 10px; overflow: hidden; display: flex; }
+    .bar-receive { background: var(--success); height: 100%; transition: width 0.5s; }
+    .bar-pay { background: var(--danger); height: 100%; transition: width 0.5s; }
+    .graph-legend { display: flex; justify-content: space-between; font-size: 12px; margin-top: 4px; }
+    .text-green { color: var(--success); font-weight: 600; }
+    .text-red { color: var(--danger); font-weight: 600; }
+
+    /* List Items */
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    .list-item:last-child { border-bottom: none; }
+    .item-left { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; }
+    .avatar.pay { background: var(--danger-light); color: var(--danger); }
+    .avatar.receive { background: var(--success-light); color: var(--success); }
+    .item-name { font-weight: 600; font-size: 15px; }
+    .item-date { font-size: 12px; color: var(--muted); }
+    .item-amount { font-weight: 700; font-size: 15px; text-align: right; }
+
+    /* Forms */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+    .form-control { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 15px; outline: none; }
+    .btn-submit { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+
+    /* History Filters */
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; }
+    .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #cbd5e1; background: white; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+    .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .sort-bar { display: flex; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+    .sort-select { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 12px; background: white; }
+    .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .badge.pending { background: #fef3c7; color: #d97706; }
+    .badge.completed { background: #e2e8f0; color: #475569; }
+    .done-btn { background: var(--primary-light); color: var(--primary); border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; margin-top: 4px; }
+
+    /* Bottom Navigation */
+    .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 480px; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #e2e8f0; z-index: 100; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--muted); cursor: pointer; border: none; background: none; font-weight: 500; }
+    .nav-item.active { color: var(--primary); font-weight: 600; }
+    .nav-icon { font-size: 20px; margin-bottom: 2px; }
+
+    /* Loader */
+    #loader { position: fixed; inset: 0; background: rgba(255,255,255,0.8); display: none; justify-content: center; align-items: center; z-index: 999; font-weight: 600; color: var(--primary); }
+  </style>
+</head>
+<body>
+
+  <div id="loader">Loading...</div>
+
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen">
+    <div class="login-box">
+      <h2>Welcome Back</h2>
+      <p>Enter your 3-digit PIN to continue</p>
+      <input type="number" id="pin-input" inputmode="numeric" pattern="[0-9]*" placeholder="•••" oninput="if(this.value.length > 3) this.value = this.value.slice(0,3);">
+      <button class="btn-login" onclick="login()">Unlock</button>
+      <div id="login-error">Incorrect PIN. Try again!</div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app-container" style="display: none;">
+    <div class="header">
+      <div class="header-top">
+        <div>
+          <p style="font-size: 12px; opacity: 0.8;">Logged in as</p>
+          <h1 id="user-greeting">Hello!</h1>
+        </div>
+        <button class="logout-btn" onclick="logout()">Lock</button>
+      </div>
+    </div>
+
+    <!-- 1. HOME SECTION -->
+    <div id="home-section" class="section active">
+      <div class="card">
+        <div class="section-title">കൊടുക്കാനുള്ളവ (To Pay)</div>
+        <div id="home-topay-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">കിട്ടാനുള്ളവ (To Receive)</div>
+        <div id="home-toreceive-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-title">Overall Summary</div>
+        <div id="graphs-container"></div>
+      </div>
+    </div>
+
+    <!-- 2. ADD NEW SECTION -->
+    <div id="add-section" class="section">
+      <div class="card">
+        <div class="section-title">പുതിയ ഇടപാട് ചേർക്കുക</div>
+        <div class="form-group">
+          <label>തരം (Type)</label>
+          <select id="add-type" class="form-control">
+            <option value="ToPay">കൊടുക്കാനുള്ളത് (I Borrowed / To Pay)</option>
+            <option value="ToReceive">കിട്ടാനുള്ളത് (I Lent / To Receive)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>വ്യക്തിയുടെ പേര് (Person Name)</label>
+          <input type="text" id="add-name" class="form-control" placeholder="ഉദാ: Rahul">
+        </div>
+        <div class="form-group">
+          <label>തുക (Amount)</label>
+          <input type="number" id="add-amount" inputmode="numeric" class="form-control" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>തിരികെ നൽകുന്ന/ലഭിക്കുന്ന തീയതി (Due Date)</label>
+          <input type="date" id="add-date" class="form-control">
+        </div>
+        <button class="btn-submit" onclick="submitNewRecord()">Save Record</button>
+      </div>
+    </div>
+
+    <!-- 3. HISTORY SECTION -->
+    <div id="history-section" class="section">
+      <div class="card">
+        <div class="section-title">Transaction History</div>
+
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="setFilter('ALL', this)">എല്ലാം (All)</button>
+          <button class="filter-btn" onclick="setFilter('ToPay', this)">കൊടുത്തത്/കൊടുക്കാനുള്ളത്</button>
+          <button class="filter-btn" onclick="setFilter('ToReceive', this)">കിട്ടിയത്/കിട്ടാനുള്ളത്</button>
+        </div>
+
+        <div class="sort-bar">
+          <select id="sort-by" class="sort-select" onchange="renderHistory()">
+            <option value="date-desc">Date: Newest First</option>
+            <option value="date-asc">Date: Oldest First</option>
+            <option value="amount-desc">Amount: High to Low</option>
+            <option value="amount-asc">Amount: Low to High</option>
+          </select>
+        </div>
+
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION -->
+    <div class="bottom-nav">
+      <button class="nav-item active" onclick="switchTab('home', this)">
+        <span class="nav-icon">🏠</span>
+        <span>Home</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('add', this)">
+        <span class="nav-icon">➕</span>
+        <span>Add New</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('history', this)">
+        <span class="nav-icon">📜</span>
+        <span>History</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyrfWBZrCIU9ggPUtuXYssS0mmMug2PhnAkbs-YT9Z_uiYmjCHmYGlVPRSD3ujyamNl/exec";
+
+    let appState = null;
+    let currentFilter = 'ALL';
+
+    function showLoader(show) {
+      document.getElementById('loader').style.display = show ? 'flex' : 'none';
+    }
+
+    function callApi(payload, onSuccess) {
+      showLoader(true);
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        showLoader(false);
+        onSuccess(data);
+      })
+      .catch(err => {
+        showLoader(false);
+        console.error(err);
+        alert("Connection error! Please check Web App URL and deployment permissions.");
+      });
+    }
+
+    function login() {
+      const pin = document.getElementById('pin-input').value;
+      if (!pin) return;
+      document.getElementById('login-error').style.display = 'none';
+
+      callApi({ action: "login", pin: pin }, function(res) {
+        if (res.success) {
+          appState = res;
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('app-container').style.display = 'block';
+          document.getElementById('user-greeting').innerText = "Hello, " + res.currentUser + "!";
+          renderApp();
+        } else {
+          document.getElementById('login-error').style.display = 'block';
+        }
+      });
+    }
+
+    function logout() {
+      appState = null;
+      document.getElementById('pin-input').value = '';
+      document.getElementById('app-container').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+
+    function switchTab(tab, btn) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(tab + '-section').classList.add('active');
+      btn.classList.add('active');
+    }
+
+    function renderApp() {
+      renderHomeLists();
+      renderGraphs();
+      renderHistory();
+    }
+
+    function renderHomeLists() {
+      const toPayList = document.getElementById('home-topay-list');
+      const toReceiveList = document.getElementById('home-toreceive-list');
+      toPayList.innerHTML = '';
+      toReceiveList.innerHTML = '';
+
+      const pending = appState.records.filter(r => r.status === 'Pending');
+      const pays = pending.filter(r => r.type === 'ToPay');
+      const receives = pending.filter(r => r.type === 'ToReceive');
+
+      toPayList.innerHTML = pays.length ? pays.map(r => createListHTML(r)).join('') : '<p style="font-size:13px;color:#94a3b8;">No pending payments.</p>';
+      toReceiveList.innerHTML = receives.length ? receives.map(r => createListHTML(r)).join('') : '<p style="font-size:13px;color:#94a3b8;">No pending receipts.</p>';
+    }
+
+    function createListHTML(r) {
+      const isPay = r.type === 'ToPay';
+      return `
+        <div class="list-item">
+          <div class="item-left">
+            <div class="avatar ${isPay ? 'pay' : 'receive'}">${r.name.charAt(0).toUpperCase()}</div>
+            <div>
+              <div class="item-name">${r.name}</div>
+              <div class="item-date">Due: ${r.dueDate}</div>
+            </div>
+          </div>
+          <div class="item-amount ${isPay ? 'text-red' : 'text-green'}">
+            ₹${r.amount.toLocaleString()}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderGraphs() {
+      const container = document.getElementById('graphs-container');
+      const isAmalu = appState.currentUser === 'Amalu';
+
+      const firstUser = isAmalu
+        ? { name: "Amalu's Graph (You)", data: appState.amaluTotals }
+        : { name: "Deepak's Graph (You)", data: appState.deepakTotals };
+      const secondUser = isAmalu
+        ? { name: "Deepak's Graph", data: appState.deepakTotals }
+        : { name: "Amalu's Graph", data: appState.amaluTotals };
+
+      container.innerHTML = createGraphHTML(firstUser.name, firstUser.data) + createGraphHTML(secondUser.name, secondUser.data);
+    }
+
+    function createGraphHTML(title, totals) {
+      const total = totals.toReceive + totals.toPay;
+      const recPct = total === 0 ? 50 : Math.round((totals.toReceive / total) * 100);
+      const payPct = total === 0 ? 50 : 100 - recPct;
+
+      return `
+        <div class="graph-box">
+          <div class="graph-header"><span>${title}</span></div>
+          <div class="bar-bg">
+            <div class="bar-receive" style="width: ${recPct}%"></div>
+            <div class="bar-pay" style="width: ${payPct}%"></div>
+          </div>
+          <div class="graph-legend">
+            <span class="text-green">കിട്ടാനുള്ളത്: ₹${totals.toReceive.toLocaleString()}</span>
+            <span class="text-red">കൊടുക്കാനുള്ളത്: ₹${totals.toPay.toLocaleString()}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function submitNewRecord() {
+      const type = document.getElementById('add-type').value;
+      const name = document.getElementById('add-name').value.trim();
+      const amount = document.getElementById('add-amount').value;
+      const dueDate = document.getElementById('add-date').value;
+
+      if (!name || !amount || !dueDate) {
+        alert("ദയവായി എല്ലാ വിവരങ്ങളും നൽകുക.");
+        return;
+      }
+
+      callApi({
+        action: "add",
+        user: appState.currentUser,
+        type: type,
+        name: name,
+        amount: amount,
+        dueDate: dueDate
+      }, function(res) {
+        appState = res;
+        document.getElementById('add-name').value = '';
+        document.getElementById('add-amount').value = '';
+        document.getElementById('add-date').value = '';
+        renderApp();
+        switchTab('home', document.querySelectorAll('.nav-item')[0]);
+      });
+    }
+
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const listContainer = document.getElementById('history-list');
+      let list = [...appState.records];
+
+      if (currentFilter !== 'ALL') {
+        list = list.filter(r => r.type === currentFilter);
+      }
+
+      const sortVal = document.getElementById('sort-by').value;
+      list.sort((a, b) => {
+        if (sortVal === 'date-desc') return new Date(b.dueDate) - new Date(a.dueDate);
+        if (sortVal === 'date-asc') return new Date(a.dueDate) - new Date(b.dueDate);
+        if (sortVal === 'amount-desc') return b.amount - a.amount;
+        if (sortVal === 'amount-asc') return a.amount - b.amount;
+      });
+
+      if (!list.length) {
+        listContainer.innerHTML = '<p style="font-size:13px;color:#94a3b8;text-align:center;padding:20px;">No records found.</p>';
+        return;
+      }
+
+      listContainer.innerHTML = list.map(r => {
+        const isPay = r.type === 'ToPay';
+        const isPending = r.status === 'Pending';
+        return `
+          <div class="list-item">
+            <div class="item-left">
+              <div class="avatar ${isPay ? 'pay' : 'receive'}">${r.name.charAt(0).toUpperCase()}</div>
+              <div>
+                <div class="item-name">${r.name} <span class="badge ${isPending ? 'pending' : 'completed'}">${r.status}</span></div>
+                <div class="item-date">${isPay ? 'To Pay' : 'To Receive'} • ${r.dueDate}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="item-amount ${isPay ? 'text-red' : 'text-green'}">₹${r.amount.toLocaleString()}</div>
+              ${isPending ? `<button class="done-btn" onclick="completeRecord('${r.id}')">Mark Paid</button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function completeRecord(id) {
+      callApi({
+        action: "complete",
+        user: appState.currentUser,
+        id: id
+      }, function(res) {
+        appState = res;
+        renderApp();
+      });
+    }
+  </script>
+</body>
+</html>
