@@ -56,13 +56,12 @@
     /* List Items */
     .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; gap: 8px; }
     .list-item:last-child { border-bottom: none; }
-    .item-left { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .item-left { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; }
     .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; flex-shrink: 0; }
     .avatar.pay { background: var(--danger-light); color: var(--danger); }
     .avatar.receive { background: var(--success-light); color: var(--success); }
     .item-name { font-weight: 600; font-size: 14px; }
     .item-date { font-size: 11px; color: var(--muted); }
-    .item-log { font-size: 10px; color: var(--primary); margin-top: 2px; }
     .item-amount { font-weight: 700; font-size: 14px; text-align: right; }
 
     /* Forms */
@@ -83,6 +82,18 @@
     .action-btns { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; flex-wrap: wrap; }
     .partial-btn { background: #fef3c7; color: #b45309; border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
     .done-btn { background: var(--primary-light); color: var(--primary); border: none; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; }
+
+    /* Popup Modal */
+    #detail-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); display: none; justify-content: center; align-items: center; padding: 20px; z-index: 500; }
+    .modal-card { background: var(--card); border-radius: 20px; width: 100%; max-width: 380px; padding: 22px; box-shadow: 0 12px 30px rgba(0,0,0,0.2); animation: popIn 0.2s ease-out; }
+    @keyframes popIn { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+    .modal-title { font-size: 18px; font-weight: 700; }
+    .modal-close { background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; color: var(--text); }
+    .detail-row { margin-bottom: 10px; font-size: 13px; }
+    .detail-label { color: var(--muted); font-size: 11px; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+    .detail-value { font-size: 14px; font-weight: 500; color: var(--text); word-break: break-word; }
+    .remarks-box { background: #f8fafc; border-left: 3px solid var(--primary); padding: 10px 12px; border-radius: 8px; margin-top: 4px; font-size: 13px; color: var(--text); }
 
     /* Bottom Navigation */
     .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 480px; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #e2e8f0; z-index: 100; }
@@ -162,6 +173,10 @@
           <label>തിരികെ നൽകുന്ന/ലഭിക്കുന്ന തീയതി (Due Date)</label>
           <input type="date" id="add-date" class="form-control">
         </div>
+        <div class="form-group">
+          <label>കാരണം / റിമാർക്സ് (Reason / Remarks)</label>
+          <input type="text" id="add-remarks" class="form-control" placeholder="എന്ത് ആവശ്യത്തിനാണ് വാങ്ങിയത് / കൊടുത്തത്?">
+        </div>
         <button class="btn-submit" onclick="submitNewRecord()">Save Record</button>
       </div>
     </div>
@@ -190,6 +205,17 @@
       </div>
     </div>
 
+    <!-- PERSON DETAIL POPUP MODAL -->
+    <div id="detail-modal" onclick="closeDetailModal(event)">
+      <div class="modal-card" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title" id="modal-person-name">Name</div>
+          <button class="modal-close" onclick="closeDetailModal()">✕</button>
+        </div>
+        <div id="modal-body-content"></div>
+      </div>
+    </div>
+
     <!-- BOTTOM NAVIGATION -->
     <div class="bottom-nav">
       <button class="nav-item active" onclick="switchTab('home', this)">
@@ -208,7 +234,7 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyrfWBZrCIU9ggPUtuXYssS0mmMug2PhnAkbs-YT9Z_uiYmjCHmYGlVPRSD3ujyamNl/exec";
+    const SCRIPT_URL = "YOUR_WEB_APP_URL_HERE";
 
     let appState = null;
     let currentFilter = 'ALL';
@@ -292,19 +318,69 @@
       const isPay = r.type === 'ToPay';
       return `
         <div class="list-item">
-          <div class="item-left">
+          <div class="item-left" onclick="openPersonModal('${r.id}')">
             <div class="avatar ${isPay ? 'pay' : 'receive'}">${r.name.charAt(0).toUpperCase()}</div>
             <div>
               <div class="item-name">${r.name}</div>
               <div class="item-date">Due: ${r.dueDate}</div>
-              ${r.partialLog ? `<div class="item-log">Paid/Rec: ${r.partialLog}</div>` : ''}
             </div>
           </div>
-          <div class="item-amount ${isPay ? 'text-red' : 'text-green'}">
+          <div class="item-amount ${isPay ? 'text-red' : 'text-green'}" onclick="openPersonModal('${r.id}')" style="cursor:pointer;">
             ₹${r.amount.toLocaleString()}
           </div>
         </div>
       `;
+    }
+
+    function openPersonModal(id) {
+      const r = appState.records.find(item => String(item.id) === String(id));
+      if (!r) return;
+
+      const isPay = r.type === 'ToPay';
+      document.getElementById('modal-person-name').innerText = r.name;
+
+      document.getElementById('modal-body-content').innerHTML = `
+        <div class="detail-row">
+          <div class="detail-label">ഇടപാട് (Type)</div>
+          <div class="detail-value ${isPay ? 'text-red' : 'text-green'}">
+            ${isPay ? 'കൊടുക്കാനുള്ളത് / കൊടുത്തത് (To Pay)' : 'കിട്ടാനുള്ളത് / കിട്ടിയത് (To Receive)'}
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">തുക (Remaining / Amount)</div>
+          <div class="detail-value">₹${r.amount.toLocaleString()} <span class="badge ${r.status === 'Pending' ? 'pending' : 'completed'}">${r.status}</span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">തീയതി (Due Date)</div>
+          <div class="detail-value">${r.dueDate || '-'}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">കാരണം / റിമാർക്സ് (Remarks)</div>
+          <div class="remarks-box">${r.remarks ? escapeHtml(r.remarks) : 'റിമാർക്സ് ഒന്നും ചേർത്തിട്ടില്ല.'}</div>
+        </div>
+        ${r.partialLog ? `
+          <div class="detail-row">
+            <div class="detail-label">പാർഷ്യൽ പേയ്‌മെന്റ് വിവരങ്ങൾ</div>
+            <div class="remarks-box">${escapeHtml(r.partialLog)}</div>
+          </div>
+        ` : ''}
+      `;
+
+      document.getElementById('detail-modal').style.display = 'flex';
+    }
+
+    function closeDetailModal(event) {
+      if (!event || event.target.id === 'detail-modal') {
+        document.getElementById('detail-modal').style.display = 'none';
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
     }
 
     function renderGraphs() {
@@ -346,9 +422,10 @@
       const name = document.getElementById('add-name').value.trim();
       const amount = document.getElementById('add-amount').value;
       const dueDate = document.getElementById('add-date').value;
+      const remarks = document.getElementById('add-remarks').value.trim();
 
       if (!name || !amount || !dueDate) {
-        alert("ദയവായി എല്ലാ വിവരങ്ങളും നൽകുക.");
+        alert("ദയവായി പേര്, തുക, തീയതി എന്നിവ നൽകുക.");
         return;
       }
 
@@ -358,12 +435,14 @@
         type: type,
         name: name,
         amount: amount,
-        dueDate: dueDate
+        dueDate: dueDate,
+        remarks: remarks
       }, function(res) {
         appState = res;
         document.getElementById('add-name').value = '';
         document.getElementById('add-amount').value = '';
         document.getElementById('add-date').value = '';
+        document.getElementById('add-remarks').value = '';
         renderApp();
         switchTab('home', document.querySelectorAll('.nav-item')[0]);
       });
@@ -402,16 +481,15 @@
         const isPending = r.status === 'Pending';
         return `
           <div class="list-item">
-            <div class="item-left">
+            <div class="item-left" onclick="openPersonModal('${r.id}')">
               <div class="avatar ${isPay ? 'pay' : 'receive'}">${r.name.charAt(0).toUpperCase()}</div>
               <div>
                 <div class="item-name">${r.name} <span class="badge ${isPending ? 'pending' : 'completed'}">${r.status}</span></div>
                 <div class="item-date">${isPay ? 'To Pay' : 'To Receive'} • ${r.dueDate}</div>
-                ${r.partialLog ? `<div class="item-log">History: ${r.partialLog}</div>` : ''}
               </div>
             </div>
             <div style="text-align:right;">
-              <div class="item-amount ${isPay ? 'text-red' : 'text-green'}">₹${r.amount.toLocaleString()}</div>
+              <div class="item-amount ${isPay ? 'text-red' : 'text-green'}" onclick="openPersonModal('${r.id}')" style="cursor:pointer;">₹${r.amount.toLocaleString()}</div>
               ${isPending ? `
                 <div class="action-btns">
                   <button class="partial-btn" onclick="partialRecord('${r.id}', ${r.amount})">Partial</button>
